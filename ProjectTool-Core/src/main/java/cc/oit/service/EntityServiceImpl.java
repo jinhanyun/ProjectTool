@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.beans.IntrospectionException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
@@ -177,7 +178,7 @@ public abstract class EntityServiceImpl<T extends Entity> implements EntityServi
             try {
                 Method readMethod = ReflectUtils.getBeanGetter(modelClass, prop);
                 readMethods.add(readMethod);
-            } catch (NoSuchMethodException e) {
+            } catch (IntrospectionException e) {
                 readMethods.add(null);
             }
         }

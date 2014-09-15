@@ -18,14 +18,12 @@ public class ReflectUtils {
         return org.springframework.cglib.core.ReflectUtils.getBeanGetters(type);
     }
 
-    public static Method getBeanGetter(Class<?> beanClass, String propertyName) throws NoSuchMethodException {
-        String methodName = "get" + StringUtils.capitalize(propertyName);
-        return beanClass.getMethod(methodName);
+    public static Method getBeanGetter(Class<?> beanClass, String propertyName) throws IntrospectionException {
+        return new PropertyDescriptor(propertyName, beanClass).getReadMethod();
     }
 
-    public static Method getBeanSetter(Class<?> beanClass, String propertyName) throws NoSuchMethodException {
-        String methodName = "set" + StringUtils.capitalize(propertyName);
-        return beanClass.getMethod(methodName);
+    public static Method getBeanSetter(Class<?> beanClass, String propertyName) throws IntrospectionException {
+        return new PropertyDescriptor(propertyName, beanClass).getWriteMethod();
     }
 
     public static Field getFieldByGetter(Class<?> modelClass, String getterName) throws NoSuchFieldException {

@@ -43,7 +43,7 @@ public final class TemplateRootConfig {
                 setter = ReflectUtils.getBeanSetter(TemplateRootConfig.class, key);
                 setter.invoke(config, value);
             } catch (Exception e) {
-                logger.warn("config.properties中有无法处理的配置项：{}, 已忽略");
+                logger.warn("config.properties中有无法处理的配置项：{}, 已忽略", key, e);
                 continue;
             }
         }
