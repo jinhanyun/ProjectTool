@@ -13,8 +13,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.mobicents.commons</groupId>
-            <artifactId>commons-annotations</artifactId>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId> <!-- 代码线程安全性注解，仅作为文档没有实际作用 -->
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

@@ -1,7 +1,7 @@
 package cc.oit.service;
 
 import cc.oit.dao.EntityDAO;
-import cc.oit.dao.SqlInterceptor;
+import cc.oit.dao.impl.mybatis.SqlInterceptor;
 import cc.oit.dao.complexQuery.CustomQueryParam;
 import cc.oit.dao.complexQuery.Sort;
 import cc.oit.exception.DataCommitException;
@@ -26,7 +26,6 @@ import java.beans.IntrospectionException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -56,7 +55,7 @@ public abstract class EntityServiceImpl<T extends Entity> implements EntityServi
 
 	@Override
 	public int count(T findParams) {
-		return entityDAO.count(findParams);
+		return entityDAO.countFind(findParams);
 	}
 
     @Override

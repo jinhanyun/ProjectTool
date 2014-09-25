@@ -1,4 +1,4 @@
-package cc.oit.dao.modelParser;
+package cc.oit.dao.impl.mybatis.modelParser;
 
 /**
  * Created by Chanedi

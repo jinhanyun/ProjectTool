@@ -1,4 +1,4 @@
-package cc.oit.dao;
+package cc.oit.dao.impl.mybatis;
 
 import cc.oit.dao.dialect.Dialect;
 import cc.oit.dao.dialect.MySql5Dialect;

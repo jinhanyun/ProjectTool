@@ -1,24 +1,29 @@
-package cc.oit.dao;
+package cc.oit.dao.impl.mybatis;
 
 import cc.oit.dao.complexQuery.CustomQueryParam;
 import cc.oit.dao.complexQuery.NoValueQueryParam;
 import cc.oit.dao.complexQuery.Sort;
 import cc.oit.dao.complexQuery.WithValueQueryParam;
-import cc.oit.dao.modelParser.ColumnTarget;
-import cc.oit.dao.modelParser.ModelUtils;
-import cc.oit.dao.modelParser.Property;
+import cc.oit.dao.impl.mybatis.modelParser.ColumnTarget;
+import cc.oit.dao.impl.mybatis.modelParser.ModelUtils;
+import cc.oit.dao.impl.mybatis.modelParser.Property;
 import cc.oit.model.Entity;
+import cc.oit.util.ReflectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.ibatis.jdbc.SQL;
 
 import javax.persistence.Table;
-import java.lang.reflect.InvocationTargetException;
+import java.beans.PropertyDescriptor;
 import java.util.*;
 
 /**
  * Created by Chanedi
  */
 public class BaseSQLProvider<T extends Entity> {
+
+    private final static Log logger = LogFactory.getLog(BaseSQLProvider.class);
 
 	private String tableName;
 	private Class<?> modelClass;
@@ -40,7 +45,7 @@ public class BaseSQLProvider<T extends Entity> {
     public String getAll() {
         initFromThreadLocal();
         SQL sql = SELECT_FROM();
-        sql = ORDER(null, sql);
+        sql = ORDER(sql);
         return sql.toString();
     }
 
@@ -50,58 +55,61 @@ public class BaseSQLProvider<T extends Entity> {
         return sql.toString();
     }
 
-    public String count(T findParams) throws NoSuchFieldException, IllegalAccessException, InvocationTargetException {
+    public String countGet(Map<String, Object> dataMap) {
+        T findParams = (T) dataMap.get("findParams");
         initFromThreadLocal();
-        SQL sql = new SQL() {
-            {
-                SELECT("COUNT(ID)");
-                FROM(tableName);
-            }
-        };
-        sql = WHERE(findParams, sql, OPERATOR_LIKE);
+        SQL sql = COUNT_FROM();
+        sql = WHERE(sql, findParams, OPERATOR_EQUAL);
         return sql.toString();
     }
 
-    public String countQuery(Map<String, Object> customQueryParams) throws NoSuchFieldException, IllegalAccessException, InvocationTargetException {
+    public String get(Map<String, Object> dataMap) {
+        T findParams = (T) dataMap.get("findParams");
         initFromThreadLocal();
-        SQL sql = new SQL() {
-            {
-                SELECT("COUNT(ID)");
-                FROM(tableName);
-            }
-        };
-
-        sql = WHERE_CUSTOM(customQueryParams, sql);
+        SQL sql = SELECT_FROM();
+        sql = WHERE(sql, findParams, OPERATOR_EQUAL);
+        sql = ORDER(sql);
         return sql.toString();
     }
 
-    public String query(Map<String, Object> dataMap) throws NoSuchFieldException, IllegalAccessException, InvocationTargetException {
+    public String countFind(Map<String, Object> dataMap) {
+        T findParams = (T) dataMap.get("findParams");
+        fixParamsValueToLike(findParams);
+        initFromThreadLocal();
+
+        SQL sql = COUNT_FROM();
+        sql = WHERE(sql, findParams, OPERATOR_LIKE);
+        return sql.toString();
+    }
+
+    public String find(Map<String, Object> dataMap) {
+        T findParams = (T) dataMap.get("findParams");
+        fixParamsValueToLike(findParams);
+        initFromThreadLocal();
+
+        SQL sql = SELECT_FROM();
+        sql = WHERE(sql, findParams, OPERATOR_LIKE);
+        sql = ORDER(sql);
+        return sql.toString();
+    }
+
+    public String countQuery(Map<String, Object> customQueryParams) {
+        initFromThreadLocal();
+        SQL sql = COUNT_FROM();
+        sql = WHERE_CUSTOM(sql, customQueryParams);
+        return sql.toString();
+    }
+
+    public String query(Map<String, Object> dataMap) {
         List<Sort> sortList = (List<Sort>) dataMap.get("sortList");
-
         initFromThreadLocal();
         SQL sql = SELECT_FROM();
-        sql = WHERE_CUSTOM(dataMap, sql);
-        sql = ORDER(sortList, sql);
+        sql = WHERE_CUSTOM(sql, dataMap);
+        sql = ORDER(sql, sortList);
         return sql.toString();
     }
 
-    public String find(T findParams) throws NoSuchFieldException, IllegalAccessException, InvocationTargetException {
-        initFromThreadLocal();
-        SQL sql = SELECT_FROM();
-        sql = WHERE(findParams, sql, OPERATOR_LIKE);
-        sql = ORDER(null, sql);
-        return sql.toString();
-    }
-
-    public String get(T findParams) throws NoSuchFieldException, IllegalAccessException, InvocationTargetException {
-        initFromThreadLocal();
-        SQL sql = SELECT_FROM();
-        sql = WHERE(findParams, sql, OPERATOR_EQUAL);
-        sql = ORDER(null, sql);
-        return sql.toString();
-    }
-
-    public String insert(final T t) throws IllegalAccessException, InvocationTargetException, NoSuchFieldException {
+    public String insert(final T t) {
         initFromThreadLocal();
         // 设置默认值
         Date now = Calendar.getInstance().getTime();
@@ -132,7 +140,7 @@ public class BaseSQLProvider<T extends Entity> {
                 Map<String, Property> properties = ModelUtils.getProperties(t, ColumnTarget.INSERT);
                 for (Property property : properties.values()) {
                     // 过滤不允许更新的字段
-                    if (property.isId() || property.isNullValue(t)) {
+                    if (isIgnoreUpdate(property, t)) {
                         continue;
                     }
 
@@ -153,7 +161,7 @@ public class BaseSQLProvider<T extends Entity> {
         }.toString();
     }
 
-    public String update(final T t) throws NoSuchFieldException, IllegalAccessException, InvocationTargetException {
+    public String update(final T t) {
         initFromThreadLocal();
         // 设置默认值
         t.setModifyTime(Calendar.getInstance().getTime());
@@ -175,18 +183,53 @@ public class BaseSQLProvider<T extends Entity> {
 
                     for (Property property : properties.values()) {
                         // 过滤不允许更新的字段
-                        if (property.isId() || property.isNullValue(t)) {
+                        if (isIgnoreUpdate(property, t)) {
                             continue;
                         }
 
                         SET(property.getColumnName() + " = #{" + property.getName() + "}");
                     }
                 } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
+                    logger.error(e.getMessage(), e);
                 }
                 WHERE("ID = #{id}");
             }
         }.toString();
+    }
+
+    private boolean isIgnoreUpdate(Property property, T t) {
+        boolean isIgnore;
+        try {
+            isIgnore = property.isId() || property.isNullValue(t);
+        } catch (Exception e) {
+            isIgnore = true;
+        }
+        return isIgnore;
+    }
+
+    private void fixParamsValueToLike(T findParams) {
+        PropertyDescriptor[] propertyDescriptors = ReflectUtils.getBeanSetters(findParams.getClass());
+        for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
+            if (propertyDescriptor.getPropertyType() != String.class) {
+                continue;
+            }
+
+            try {
+                Object value = propertyDescriptor.getReadMethod().invoke(findParams);
+                propertyDescriptor.getWriteMethod().invoke(findParams, "%" + value + "%");
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+            }
+        }
+    }
+
+    private SQL COUNT_FROM() {
+        return new SQL() {
+            {
+                SELECT("COUNT(ID)");
+                FROM(tableName);
+            }
+        };
     }
 
     private SQL SELECT_FROM() {
@@ -201,18 +244,18 @@ public class BaseSQLProvider<T extends Entity> {
         };
     }
 
-    private SQL WHERE(T findParams, SQL sql, String operator) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+    private SQL WHERE(SQL sql, T findParams, String operator) {
         Map<String, Property> properties = ModelUtils.getProperties(findParams, ColumnTarget.WHERE);
 
         for (Property property : properties.values()) {
-            if (operator.equalsIgnoreCase("LIKE")) {
+            if (operator.equalsIgnoreCase(OPERATOR_LIKE)) {
             }
-            sql.WHERE(property.getColumnName() + operator + "#{" + property.getName() + "}");
+            sql.WHERE(property.getColumnName() + operator + "#{findParams." + property.getName() + "}");
         }
         return sql;
     }
 
-    private SQL WHERE_CUSTOM(Map<String, Object> dataMap, SQL sql) {
+    private SQL WHERE_CUSTOM(SQL sql, Map<String, Object> dataMap) {
         Map<String, Property> properties = ModelUtils.getProperties(modelClass, null);
         List<CustomQueryParam> customQueryParams = (List<CustomQueryParam>) dataMap.get("queryParams");
         if (customQueryParams == null) {
@@ -236,7 +279,11 @@ public class BaseSQLProvider<T extends Entity> {
         return sql;
     }
 
-    private SQL ORDER(List<Sort> sortList, SQL sql) {
+    private SQL ORDER(SQL sql) {
+        return ORDER(sql, null);
+    }
+
+    private SQL ORDER(SQL sql, List<Sort> sortList) {
         Map<String, Property> properties = ModelUtils.getProperties(modelClass, ColumnTarget.ORDER);
         for (Property property : properties.values()) {
             sql.ORDER_BY(property.getOrder());
