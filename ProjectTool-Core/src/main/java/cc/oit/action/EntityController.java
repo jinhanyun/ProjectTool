@@ -88,7 +88,7 @@ public class EntityController {
         addFilterQueryParams(request, queryParams);
 
         // 查询
-    	List<?> list = entityService.query(queryParams, start, limit, JSONArray.parseArray(sort, Sort.class));
+    	List<?> list = entityService.query(queryParams, JSONArray.parseArray(sort, Sort.class), start, limit);
     	TableView tableView = new TableView();
     	tableView.setRows(list);
         tableView.setTotal(entityService.countQuery(queryParams));

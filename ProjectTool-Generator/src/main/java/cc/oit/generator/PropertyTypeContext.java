@@ -5,12 +5,12 @@ import cc.oit.generator.model.PropertyType;
 import cc.oit.util.PropertiesWithOrder;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import org.mobicents.commons.annotations.NotThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;

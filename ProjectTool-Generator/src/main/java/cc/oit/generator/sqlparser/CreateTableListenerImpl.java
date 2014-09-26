@@ -9,8 +9,8 @@ import cc.oit.generator.sqlparser.gen.CreateTableParser;
 import cc.oit.util.StringUtils;
 import lombok.Getter;
 import org.antlr.v4.runtime.misc.NotNull;
-import org.mobicents.commons.annotations.NotThreadSafe;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
