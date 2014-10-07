@@ -145,7 +145,6 @@ public class BaseSQLProvider<T extends Entity> {
                     }
 
                     VALUES(property.getColumnName(), "#{" + property.getName() + "}");
-
                 }
             }
         }.toString();
