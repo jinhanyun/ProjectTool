@@ -20,35 +20,19 @@ import java.util.Properties;
 
 /**
  * 支持物理分页。
- *
  * Created by unknown
- * Edit by Chanedi
  */
 @Intercepts({ @Signature(type = StatementHandler.class, method = "prepare", args = { Connection.class }) })
-public class SqlInterceptor implements Interceptor {
+public class PageInterceptor implements Interceptor {
 	
 	protected final Log logger = LogFactory.getLog(getClass());
-	private static ThreadLocal<RowBounds> rowBounds = new ThreadLocal<RowBounds>();
-	
-	public static RowBounds getRowBounds() {
-		RowBounds rowBounds = SqlInterceptor.rowBounds.get();
-		SqlInterceptor.rowBounds.remove();
-		return rowBounds;
-	}
 
-	public static void setRowBounds(RowBounds rowBounds) {
-		SqlInterceptor.rowBounds.set(rowBounds);
-	}
-	
 	@Override
 	public Object intercept(Invocation invocation) throws Throwable {
 		StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
 		BoundSql boundSql = statementHandler.getBoundSql();
 		MetaObject metaStatementHandler = MetaObject.forObject(statementHandler, new DefaultObjectFactory(), new DefaultObjectWrapperFactory());
-		RowBounds rowBounds = getRowBounds();
-		if (rowBounds == null) {
-			rowBounds = (RowBounds) metaStatementHandler.getValue("delegate.rowBounds");
-		}
+		RowBounds rowBounds = (RowBounds) metaStatementHandler.getValue("delegate.rowBounds");
 		Configuration configuration = (Configuration) metaStatementHandler.getValue("delegate.configuration");
 		DBDialectType databaseType = null;
 		try {
@@ -67,7 +51,6 @@ public class SqlInterceptor implements Interceptor {
 		case ORACLE:
 			dialect = new OracleDialect();
 			break;
-
 		}
 
 		String sql = (String) metaStatementHandler.getValue("delegate.boundSql.sql");

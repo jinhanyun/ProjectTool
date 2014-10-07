@@ -1,7 +1,7 @@
 package cc.oit.dao.impl.mybatis.modelParser;
 
 import cc.oit.dao.impl.mybatis.BaseSQLProvider;
-import cc.oit.dao.impl.mybatis.SqlInterceptor;
+import cc.oit.dao.impl.mybatis.RowBoundsInterceptor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.ibatis.annotations.Param;
@@ -36,7 +36,7 @@ public class ParseTableNameAspect {
 
     private void parseRowBounds(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         if (!hasRowRounds(proceedingJoinPoint)) {
-            SqlInterceptor.setRowBounds(null);
+            RowBoundsInterceptor.setRowBounds(null);
             return;
         }
 
@@ -44,9 +44,9 @@ public class ParseTableNameAspect {
         Integer start = (Integer) oriArgs[oriArgs.length - 2];
         Integer limit = (Integer) oriArgs[oriArgs.length - 1];
         if (start != null && limit != null) {
-            SqlInterceptor.setRowBounds(new RowBounds(start, limit));
+            RowBoundsInterceptor.setRowBounds(new RowBounds(start, limit));
         } else {
-            SqlInterceptor.setRowBounds(null);
+            RowBoundsInterceptor.setRowBounds(null);
         }
     }
 
